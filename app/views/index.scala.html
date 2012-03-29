@@ -1,0 +1,91 @@
+@(tasks: List[Task], taskForm: Form[Task])
+
+@import helper._
+@main("Welcome to Simulation Web Console!") {
+
+	<div id="container">
+   		<div id="top">
+   			<h3>Simulation Task Web Console</h3>
+   			<div id="message">
+   			</div>
+   		</div>
+   		<div id="middle">
+   			<div class="addform" style="display:none">
+   				@form(routes.Application.newTask()){
+					@inputText(taskForm("label"))
+					@inputText(taskForm("description"))
+					@inputText(taskForm("concurrentRequestLimit"))
+					@inputText(taskForm("maxServer"))
+					@inputText(taskForm("hoursToSimulate"))
+					@inputText(taskForm("averageRequestPerSecond"))
+					@inputText(taskForm("maxRequestPerSecond"))
+					@inputText(taskForm("minRequestPerSecond"))
+					@inputText(taskForm("averageRequestServiceTime"))
+					@inputText(taskForm("maxRequestServiceTime"))
+					@inputText(taskForm("minRequestServiceTime"))
+					<input type="submit" value="Create"/>
+				}
+   				<a href="#" onclick="javascript:hideForm()">close</a>
+   			</div>
+   			<div id="tasks">
+   				<h2>@tasks.size() task(s)</h2>
+   				<table>
+					@for(task <- tasks){
+						<tr>
+							<td>@task.label</td>
+							<td>@task.description</td>
+							<td><div id="@task.id" class="progress">0%</div></td>
+							@form(routes.Application.deleteTask(task.id)){
+								<td><input type="submit" value="Delete"/></td>
+							}
+							@form(routes.Application.details(task.id)){
+								<td><input id="Delete@task.id" type="submit" value="Results" disabled/>
+							}
+						</tr>
+					}
+				</table>
+   				<a href="#" onclick="javascript:showForm()">add</a> button
+   			</div>
+   		</div>
+   		<div id="bottom"> 
+   				This is where the resutls will be shown..!!
+   		</div>
+   </div>
+   <script language="javascript">
+   		function showForm(){
+   			$(".addform").show();
+   		}
+   		function hideForm(){
+   			$(".addform").hide();
+   		}
+   		function disableButtong(id){
+   			$(id).attr('disabled', 'disabled');
+   		}
+   		function enableButton(id){
+   			if ($(id).attr('disabled')) $(id).removeAttr('disabled');
+   		}
+   		function updateProgress(){
+   			$.getJSON('@routes.Application.progress()', function(data) {
+   			  
+   			  $.each(data, function(key, val) {
+   				  $("#"+key).html(val + " %");
+   				  if(parseFloat(val) >= 99.9)
+   					  enableButton("#Delete"+key)
+   				  //alert(key  + "->" + val);
+   			  });
+
+   			  /* $('<ul/>', {
+   			    'class': 'my-new-list',
+   			    html: items.join('')
+   			  }).appendTo('body'); */
+   			});
+   		}
+   		window.setInterval(updateProgress, 5000);
+
+
+   </script>
+	
+
+	
+
+}
