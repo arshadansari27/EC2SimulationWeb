@@ -1,4 +1,5 @@
-This is your new Play 2.0 application
-=====================================
+To run the project, following things are required.
 
-This file will be packaged with your application, when using `play dist`.
+1) Play framework 2.0
+2) SQLITE 3
+3) Redis 
