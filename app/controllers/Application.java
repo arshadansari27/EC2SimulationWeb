@@ -7,7 +7,7 @@ import play.mvc.*;
 import play.mvc.BodyParser.Json;
 
 import views.html.*;
-import models.Task;
+import models.SimulationTask;
 import play.data.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -18,45 +18,45 @@ import org.olivelabs.simulation.StatisticsCollector;
 public class Application extends Controller {
   
 
-  static Form<Task> taskForm = form(Task.class);
+  static Form<SimulationTask> taskForm = form(SimulationTask.class);
   public static Result index() {
 	  return redirect(routes.Application.tasks());
   }
   
   public static Result tasks(){
-	  return ok(views.html.index.render(Task.all(), taskForm));
+	  return ok(views.html.index.render(SimulationTask.all(), taskForm));
   }
   
   public static Result newTask(){
-	  Form<Task> filledForm = taskForm.bindFromRequest();
+	  Form<SimulationTask> filledForm = taskForm.bindFromRequest();
 	  if(filledForm.hasErrors()) {
 		  flash("error","Oops, something is <span style=\"color:@color\">wrong</span>");
 		   
 	    return badRequest(
-	      views.html.index.render(Task.all(), filledForm)
+	      views.html.index.render(SimulationTask.all(), filledForm)
 	    );
 	  } else {
-		  Task t = filledForm.get();
+		  SimulationTask t = filledForm.get();
 		  t.id = "Task"+new Random().nextInt();
-	    Task.create(t);
+		  SimulationTask.create(t);
 	    flash("success","The task has been <span style=\"color:@color\">created</span>!");
 	    return redirect(routes.Application.tasks());  
 	  }
   }
   
   public static Result deleteTask(String id){
-	  Task.delete(id);
+	  SimulationTask.delete(id);
 	  return redirect(routes.Application.tasks());
   }
   
   @BodyParser.Of(Json.class)
   public static Result progress(){
-	  List<Task> allTasks = Task.all();
+	  List<SimulationTask> allTasks = SimulationTask.all();
 	  
 	  ObjectNode result = play.libs.Json.newObject();
 	  if(allTasks!=null && !allTasks.isEmpty()){
-		  for(Task task : allTasks){
-			  Double d = task.getProgress(task);
+		  for(SimulationTask task : allTasks){
+			  String d = task.getProgress(task);
 			  if(d != null) result.put(task.id, d);
 			  else result.put(task.id, "100");
 		  }
@@ -73,14 +73,13 @@ public class Application extends Controller {
   
   @BodyParser.Of(Json.class)
   public static Result details(String id){
-	  ObjectNode result = play.libs.Json.newObject();
-	  result.put("status", "KO");
-	  StatisticsCollector stats = Task.getDetails(id);
+	  
+	  StatisticsCollector stats = SimulationTask.getDetails(id);
 	  if(stats!=null){
-		  result.put("simulation", getJsonNodes(stats));
-		  return ok(result);
+		  return ok(getJsonNodes(stats));
 	  }
 	  else{
+		  ObjectNode result = play.libs.Json.newObject();
 		  result.put("message", "Couldn't gets statistics");
 		  return badRequest(result);		  
 	  }
@@ -103,11 +102,18 @@ public class Application extends Controller {
 		for(Entry<Long,Long> serversPerHour : serverHistoryInHours.entrySet()){
 			hrsNode.put(""+serversPerHour.getKey(), ""+serversPerHour.getValue());
 		}
-		ObjectNode history = play.libs.Json.newObject();
-		history.put("SECONDS", secondsNode);
-		history.put("MINUTES", minsNode);
-		history.put("HOURS", hrsNode);
-		return history;
+		ObjectNode output = play.libs.Json.newObject();
+		output.put("SECONDS", secondsNode);
+		output.put("MINUTES", minsNode);
+		output.put("HOURS", hrsNode);
+		output.put("TOTAL_DISPATCHED", stats.requestDipatchedCount);
+		output.put("TOTAL_REJECTED", stats.requestRejectedCount);
+		output.put("AVG_SERVICE_TIME", stats.averageServiceTime);
+		output.put("AVG_WAIT_TIME", stats.averageWaitTime);
+		output.put("AVG_ACTUAL_SERVICE_TIME", stats.averageActualServiceTime);
+		output.put("AVG_SERVER_UTILIZATION", stats.averageServerUtilization);
+		output.put("AVG_SERVER_USAGE", stats.averageServerUsage);
+		return output;
 		
   }
 }

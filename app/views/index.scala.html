@@ -1,15 +1,39 @@
-@(tasks: List[Task], taskForm: Form[Task])
+@(tasks: List[SimulationTask], taskForm: Form[SimulationTask])
 
 @import helper._
 @main("Welcome to Simulation Web Console!") {
 
 	<div id="container">
    		<div id="top">
-   			<h3>Simulation Task Web Console</h3>
-   			<div id="message">
+   			<h3 class="header">Simulation Task Web Console</h3>
+   			<div id="info">
    			</div>
    		</div>
    		<div id="middle">
+   			<div id="tasks">
+   				<h3>@tasks.size() task(s)  <input type="button" class="button" onclick="javascript:showForm()" value="Add new Simulation Task"/></h2>
+   				<table>
+					@for(task <- tasks){
+						<tr>
+							<td>@task.label</td>
+							<td>@task.description</td>
+							<td><div id="@task.id" class="progress">@task.status</div></td>
+							@form(routes.Application.deleteTask(task.id)){
+								<td><input type="submit" value="Delete" class="button"/></td>
+							}
+							
+							<td>
+								<div class="Delete@task.id"><input type="button" class="button" onclick="javascript:updateDetails('@routes.Application.details(task.id)');" value="Show Details"/></div>
+							</td>
+							
+							<!-- //@form(routes.Application.details(task.id)){
+								<td><input id="Delete@task.id" type="submit" value="Results" disabled/>
+							}
+							 -->
+						</tr>
+					}
+				</table>
+   			</div>
    			<div class="addform" style="display:none">
    				@form(routes.Application.newTask()){
 					@inputText(taskForm("label"))
@@ -23,35 +47,42 @@
 					@inputText(taskForm("averageRequestServiceTime"))
 					@inputText(taskForm("maxRequestServiceTime"))
 					@inputText(taskForm("minRequestServiceTime"))
-					<input type="submit" value="Create"/>
+					<input type="submit" value="Create" class="button"/><input type="button" onclick="javascript:hideForm()" class="button"/ value="Close"/>
 				}
-   				<a href="#" onclick="javascript:hideForm()">close</a>
-   			</div>
-   			<div id="tasks">
-   				<h2>@tasks.size() task(s)</h2>
-   				<table>
-					@for(task <- tasks){
-						<tr>
-							<td>@task.label</td>
-							<td>@task.description</td>
-							<td><div id="@task.id" class="progress">0%</div></td>
-							@form(routes.Application.deleteTask(task.id)){
-								<td><input type="submit" value="Delete"/></td>
-							}
-							@form(routes.Application.details(task.id)){
-								<td><input id="Delete@task.id" type="submit" value="Results" disabled/>
-							}
-						</tr>
-					}
-				</table>
-   				<a href="#" onclick="javascript:showForm()">add</a> button
+   				
    			</div>
    		</div>
-   		<div id="bottom"> 
-   				This is where the resutls will be shown..!!
+   		<div id="bottom" class="bottom"> 
+		Simulation Run Details... 
+				<div>
+					<ul>
+						<li>Total Dispatched            : <span class="dispatched"></span></li>
+						<li>Total Rejected              : <span class="rejected"></span></li>
+						<li>Avergage Service Time       : <span class="avgsrvtime"></span></li>
+						<li>Average Wait Time           : <span class="avgwttime"></span></li>
+						<li>Average Actual Service Time : <span class="avgactsrvtime"></span></li>
+						<li>Average Server Utiliztion   : <span class="avgsrvrutil"></span></li>
+						<li>Average Server Usage        : <span class="avgsrvrusg"></span></li>
+					</ul>
+				</div>  				
+   				<div id="seconds">
+   					<div>Seconds wise server usage:</div>
+   					<div id="secondsplaceholder" style="width:600px;height:300px;"></div>
+   				</div>
+   				<div id="minutes">
+   					<div>Minutes wise server usage:</div>
+   					<div id="minutesplaceholder" style="width:600px;height:300px;"></div>
+   				</div>
+   				<div id="hours">
+   					<div>Hourly server usage:</div>
+   					<div id="hoursplaceholder" style="width:600px;height:300px;"></div>
+   				</div>
+   				<div id="error">
+   				</div>
    		</div>
    </div>
    <script language="javascript">
+   		$(".bottom").hide();
    		function showForm(){
    			$(".addform").show();
    		}
@@ -62,7 +93,51 @@
    			$(id).attr('disabled', 'disabled');
    		}
    		function enableButton(id){
-   			if ($(id).attr('disabled')) $(id).removeAttr('disabled');
+   			//if ($(id).attr('disabled')) $(id).removeAttr('disabled');
+   			i$('.'+id).show();
+   		}
+   		
+   		function updateDetails(taskId){
+   			$.getJSON(taskId, function(data) {
+     			  
+     			  $.each(data, function(key, val) {
+     				  if(key == 'SECONDS'){
+     					 updateGraph('secondsplaceholder', val);
+     				  }
+     				  else if(key == 'MINUTES'){
+     					 updateGraph('minutesplaceholder', val);
+     					 
+     				  }
+     				  else if(key == 'HOURS'){
+     					 updateGraph('hoursplaceholder', val);
+     				  }
+     				 else if(key == 'TOTAL_DISPATCHED'){
+     					 $(".dispatched").html(val);
+     				  }
+     				else if(key == 'TOTAL_REJECTED'){
+     					$(".rejected").html(val);
+    				  }
+     				else if(key == 'AVG_SERVICE_TIME'){
+     					$(".avgsrvtime").html(val);
+    				  }
+     				else if(key == 'AVG_WAIT_TIME'){
+     					$(".avgwttime").html(val);
+    				  }
+     				else if(key == 'AVG_ACTUAL_SERVICE_TIME'){
+     					$(".avgactsrvtime").html(val);
+    				  }
+     				else if(key == 'AVG_SERVER_UTILIZATION'){
+     					$(".avgsrvrutil").html(val);
+    				  }
+     				else if(key == 'AVG_SERVER_USAGE'){
+     					$(".avgsrvrusg").html(val);
+    				  }
+     				  else{
+     					alert("Some error occured while trying to get details of graphs!!!");
+     				  }
+     			  });
+     			  $(".bottom").show();
+     			});
    		}
    		function updateProgress(){
    			$.getJSON('@routes.Application.progress()', function(data) {
@@ -70,18 +145,19 @@
    			  $.each(data, function(key, val) {
    				  $("#"+key).html(val + " %");
    				  if(parseFloat(val) >= 99.9)
-   					  enableButton("#Delete"+key)
-   				  //alert(key  + "->" + val);
+   					  enableButton("#Delete"+key);
    			  });
-
-   			  /* $('<ul/>', {
-   			    'class': 'my-new-list',
-   			    html: items.join('')
-   			  }).appendTo('body'); */
    			});
    		}
-   		window.setInterval(updateProgress, 5000);
-
+   		window.setInterval(updateProgress, 10000);
+   		var updateGraph = function (placeholder, data) {
+   			var d = [];
+   			$.each(data, function(k,v){
+				  d.push([k,v]);
+			  });
+   		    
+   		    $.plot($("#"+placeholder), [d]);
+   		};	
 
    </script>
 	
